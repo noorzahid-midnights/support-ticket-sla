@@ -60,6 +60,7 @@ export const httpApi: HelpdeskApi = {
       request<UserRef>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
     register: (input) =>
       request<UserRef>("/api/auth/register", { method: "POST", body: JSON.stringify(input) }),
+    updateMe: (input) => request<UserRef>("/api/auth/me", { method: "PATCH", body: JSON.stringify(input) }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
   },
   meta: {
@@ -86,6 +87,7 @@ export const httpApi: HelpdeskApi = {
     users: () => request<TeamMember[]>("/api/admin/users"),
     setRole: (userId, role) =>
       request<RoleChangeResult>(`/api/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+    deleteUser: (userId) => request<void>(`/api/admin/users/${userId}`, { method: "DELETE" }),
     runSweep: () => request<SweepResult>("/api/admin/sla/sweep", { method: "POST" }),
   },
 };

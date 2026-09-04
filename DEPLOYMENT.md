@@ -107,6 +107,24 @@ reach anything else on the cluster.
 
 ---
 
+## 6 · Before real users arrive
+
+The seed creates seven accounts that all share the password `password123`. The
+sign-in screen no longer prints them — that list is rendered only when
+`NEXT_PUBLIC_API_MODE=mock` — but the accounts themselves still exist and the
+password is in this repository.
+
+1. Sign in as `admin@helpdesk.test` and open **Your account** from the sidebar.
+   Change the email and password to the real administrator's.
+2. Have the real staff sign up, then promote them on **Team**.
+3. Delete the remaining seeded accounts from **Team**. Deletion is refused while
+   an account still owns or is assigned a live ticket, so reassign or close those
+   first.
+
+Skipping step 1 leaves an admin account whose password is public.
+
+---
+
 ## Running it locally
 
 ```bash

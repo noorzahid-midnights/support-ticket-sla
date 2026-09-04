@@ -27,6 +27,72 @@ function Highlight({ icon: Icon, title, body }: { icon: typeof Clock3; title: st
   );
 }
 
+/**
+ * The seeded roster, one click each.
+ *
+ * Rendered only in mock mode: printing a working password on the login page of
+ * a real deployment is a hole rather than a convenience, and on a real
+ * deployment these accounts should be deleted at handover anyway.
+ */
+function DemoAccounts({ onPick, disabled }: { onPick: (email: string) => void; disabled: boolean }) {
+  return (
+    <div className="mt-8">
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" aria-hidden />
+        <span className="text-2xs uppercase tracking-wide text-muted-foreground">Demo accounts</span>
+        <span className="h-px flex-1 bg-border" aria-hidden />
+      </div>
+
+      {/* The whole seeded roster, grouped by role. Offering a subset was
+          how the login screen and the sidebar switcher drifted out of
+          step in the first place. */}
+      <div className="mt-4 space-y-4">
+        {accountsByRole().map((group) => (
+          <div key={group.role}>
+            <p className="pb-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {group.label}
+            </p>
+            <ul className="space-y-1.5">
+              {group.accounts.map((account) => (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(account.email)}
+                    disabled={disabled}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-2 text-left transition-colors",
+                      "hover:border-primary/30 hover:bg-primary-subtle/40 disabled:opacity-60",
+                    )}
+                  >
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-2xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
+                      {account.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-medium leading-tight">{account.name}</span>
+                      <span className="block truncate text-2xs leading-tight text-muted-foreground">
+                        {account.blurb}
+                      </span>
+                    </span>
+                    <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-2xs text-muted-foreground">
+        Every seeded account uses the password{" "}
+        <code className="rounded bg-secondary px-1 py-0.5 font-mono">{DEMO_PASSWORD}</code>.
+      </p>
+    </div>
+  );
+}
+
 export function LoginView() {
   const router = useRouter();
   const params = useSearchParams();
@@ -252,60 +318,9 @@ export function LoginView() {
             )}
           </form>
 
-          <div className="mt-8">
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" aria-hidden />
-              <span className="text-2xs uppercase tracking-wide text-muted-foreground">Demo accounts</span>
-              <span className="h-px flex-1 bg-border" aria-hidden />
-            </div>
-
-            {/* The whole seeded roster, grouped by role. Offering a subset was
-                how the login screen and the sidebar switcher drifted out of
-                step in the first place. */}
-            <div className="mt-4 space-y-4">
-              {accountsByRole().map((group) => (
-                <div key={group.role}>
-                  <p className="pb-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group.label}
-                  </p>
-                  <ul className="space-y-1.5">
-                    {group.accounts.map((account) => (
-                      <li key={account.email}>
-                        <button
-                          type="button"
-                          onClick={() => signInAs(account.email)}
-                          disabled={signIn.isPending}
-                          className={cn(
-                            "flex w-full items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-2 text-left transition-colors",
-                            "hover:border-primary/30 hover:bg-primary-subtle/40 disabled:opacity-60",
-                          )}
-                        >
-                          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-2xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
-                            {account.name
-                              .split(" ")
-                              .map((w) => w[0])
-                              .join("")}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-medium leading-tight">{account.name}</span>
-                            <span className="block truncate text-2xs leading-tight text-muted-foreground">
-                              {account.blurb}
-                            </span>
-                          </span>
-                          <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-4 text-2xs text-muted-foreground">
-              Every seeded account uses the password{" "}
-              <code className="rounded bg-secondary px-1 py-0.5 font-mono">{DEMO_PASSWORD}</code>.
-            </p>
-          </div>
+          {API_MODE === "mock" && (
+            <DemoAccounts onPick={signInAs} disabled={signIn.isPending} />
+          )}
         </div>
       </section>
     </main>

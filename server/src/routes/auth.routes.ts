@@ -67,3 +67,52 @@ authRouter.get(
     res.json({ id: String(me.id), name: me.name, email: me.email, role: me.role });
   }),
 );
+
+/**
+ * Update your own profile.
+ *
+ * Deliberately cannot touch `role` — that is only ever changed by an admin on
+ * the Team page, so nobody can promote themselves here.
+ *
+ * Changing the password requires the current one even though the session is
+ * already authenticated: it stops an unattended logged-in browser from being
+ * used to lock the real owner out of their account.
+ */
+authRouter.patch(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const input = z
+      .object({
+        name: z.string().min(2).max(80).optional(),
+        email: z.string().email().optional(),
+        currentPassword: z.string().optional(),
+        newPassword: z.string().min(8, "New password must be at least 8 characters.").optional(),
+      })
+      .parse(req.body);
+
+    const me = currentUser(req);
+    const user = await User.findById(me.id);
+    if (!user) throw new HttpError(404, "Account not found.", "not_found");
+
+    if (input.newPassword) {
+      if (!input.currentPassword) {
+        throw new HttpError(400, "Enter your current password to set a new one.", "current_password_required");
+      }
+      const ok = await bcrypt.compare(input.currentPassword, user.passwordHash);
+      if (!ok) throw new HttpError(401, "Your current password is incorrect.", "bad_credentials");
+      user.passwordHash = await bcrypt.hash(input.newPassword, 10);
+    }
+
+    if (input.email && input.email.toLowerCase() !== user.email) {
+      const taken = await User.findOne({ email: input.email.toLowerCase() });
+      if (taken) throw new HttpError(409, "That email is already in use.", "duplicate");
+      user.email = input.email.toLowerCase();
+    }
+
+    if (input.name) user.name = input.name.trim();
+
+    await user.save();
+    res.json({ id: String(user._id), name: user.name, email: user.email, role: user.role });
+  }),
+);

@@ -250,3 +250,58 @@ adminRouter.patch(
     res.json({ id: String(user._id), name: user.name, role: user.role, previous, openTickets, changed: true });
   }),
 );
+
+/**
+ * Delete an account. Mainly so the seeded demo users can be removed at handover.
+ *
+ * Refused when the account still owns or is assigned to a live ticket: deleting
+ * it would leave tickets pointing at a user that no longer exists, and the
+ * ticket list would break on a null customer. Reassign or close them first —
+ * the message says which.
+ *
+ * Same two protections as a role change: not yourself, and not the last admin.
+ */
+adminRouter.delete(
+  "/users/:id",
+  asyncHandler(async (req, res) => {
+    const me = currentUser(req);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id!)) {
+      throw new HttpError(404, "No such user.", "not_found");
+    }
+    if (String(me.id) === req.params.id) {
+      throw new HttpError(422, "You cannot delete your own account.", "self_delete");
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) throw new HttpError(404, "No such user.", "not_found");
+
+    if (user.role === "admin") {
+      const admins = await User.countDocuments({ role: "admin" });
+      if (admins <= 1) {
+        throw new HttpError(422, "This is the only admin. Promote someone else first.", "last_admin");
+      }
+    }
+
+    const raised = await Ticket.countDocuments({ customer: user._id });
+    const assigned = await Ticket.countDocuments({
+      assignedAgent: user._id,
+      status: { $nin: ["resolved", "closed"] },
+    });
+
+    if (raised > 0 || assigned > 0) {
+      const parts = [
+        raised > 0 ? `raised ${raised} ticket${raised === 1 ? "" : "s"}` : null,
+        assigned > 0 ? `are assigned ${assigned} open ticket${assigned === 1 ? "" : "s"}` : null,
+      ].filter(Boolean);
+      throw new HttpError(
+        422,
+        `Cannot delete ${user.name}: they ${parts.join(" and ")}. Reassign or close those first.`,
+        "has_tickets",
+      );
+    }
+
+    await user.deleteOne();
+    console.log(`[admin] ${me.email} deleted ${user.email}`);
+    res.status(204).end();
+  }),
+);

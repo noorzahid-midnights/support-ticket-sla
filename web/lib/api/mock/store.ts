@@ -30,7 +30,7 @@ import {
 } from "@shared/types.js";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 
-const STORAGE_KEY = "helpdesk.mock.v4";
+const STORAGE_KEY = "helpdesk.mock.v5";
 
 export const MOCK_CALENDAR: BusinessCalendar = {
   timezone: "Asia/Karachi",
@@ -112,6 +112,10 @@ export interface MockData {
   registered: (UserRef & { password: string })[];
   /** Role overrides by user id. The seeded roster is a constant, so promotions live here. */
   roles: Record<string, Role>;
+  /** Profile edits by user id — same reason as `roles`, for name/email/password. */
+  profiles: Record<string, { name?: string; email?: string; password?: string }>;
+  /** Accounts an admin removed. Seeded users cannot be spliced out of a constant. */
+  deletedUserIds: string[];
   tickets: MockTicket[];
   seq: number;
 }
@@ -142,14 +146,41 @@ export function writeClock(t: MockTicket, clock: SlaClock): void {
   };
 }
 
+/**
+ * Resolve a user, with an admin's role change and the person's own profile
+ * edits folded in.
+ *
+ * Every read of a user goes through here, so a rename, an email change or a
+ * deletion is visible everywhere at once rather than in whichever screens
+ * remembered to apply the override.
+ */
 export function userById(id: string | null): UserRef | null {
-  const override = id ? memory?.roles?.[id] : undefined;
-  const seeded = MOCK_USERS.find((u) => u.id === id);
-  if (seeded) return override ? { ...seeded, role: override } : seeded;
-  const signedUp = memory?.registered?.find((u) => u.id === id);
-  return signedUp
-    ? { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: override ?? signedUp.role }
-    : null;
+  if (!id || memory?.deletedUserIds?.includes(id)) return null;
+
+  const role = memory?.roles?.[id];
+  const profile = memory?.profiles?.[id];
+  const base =
+    MOCK_USERS.find((u) => u.id === id) ??
+    memory?.registered?.find((u) => u.id === id);
+  if (!base) return null;
+
+  return {
+    id: base.id,
+    name: profile?.name ?? base.name,
+    email: profile?.email ?? base.email,
+    role: role ?? base.role,
+  };
+}
+
+/** The password to check at sign-in: an edited one, else the account's own. */
+export function passwordFor(id: string, fallback: string): string {
+  return memory?.profiles?.[id]?.password ?? fallback;
+}
+
+/** Every account that still exists, seeded and signed-up alike. */
+export function allUsers(): UserRef[] {
+  const ids = [...MOCK_USERS.map((u) => u.id), ...readStore().registered.map((u) => u.id)];
+  return ids.map((id) => userById(id)).filter((u): u is UserRef => u !== null);
 }
 
 export function serialize(t: MockTicket, now = new Date()): Ticket {
@@ -466,7 +497,15 @@ export function buildSeed(): MockData {
 
   // Starts signed out, so the login screen is a real part of the demo rather
   // than a page nobody ever sees.
-  return { currentUserId: null, registered: [], roles: {}, tickets, seq: 1000 + specs.length };
+  return {
+    currentUserId: null,
+    registered: [],
+    roles: {},
+    profiles: {},
+    deletedUserIds: [],
+    tickets,
+    seq: 1000 + specs.length,
+  };
 }
 
 /* ---------------------------------------------------------- persistence */

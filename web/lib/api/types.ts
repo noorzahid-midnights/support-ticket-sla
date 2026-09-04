@@ -72,6 +72,8 @@ export interface HelpdeskApi {
     login(email: string, password: string): Promise<UserRef>;
     /** Self-registration. Always creates a customer — staff are provisioned, never self-served. */
     register(input: { name: string; email: string; password: string }): Promise<UserRef>;
+    /** Update your own profile. Cannot change role — that is admin-only, on the Team page. */
+    updateMe(input: { name?: string; email?: string; currentPassword?: string; newPassword?: string }): Promise<UserRef>;
     logout(): Promise<void>;
   };
   meta: {
@@ -93,6 +95,7 @@ export interface HelpdeskApi {
     /** Everyone, not just staff — the Team page needs customers too, to promote them. */
     users(): Promise<TeamMember[]>;
     setRole(userId: string, role: Role): Promise<RoleChangeResult>;
+    deleteUser(userId: string): Promise<void>;
     runSweep(): Promise<SweepResult>;
   };
 }

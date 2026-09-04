@@ -1,11 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Info, ShieldCheck, Users } from "lucide-react";
+import { Info, ShieldCheck, Trash2, Users } from "lucide-react";
 import { ROLES, type Role } from "@shared/types.js";
 import { api } from "@/lib/api";
 import type { TeamMember } from "@/lib/api/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,6 +82,23 @@ export function TeamView() {
       });
     },
     onError: (e: Error) => toast.error("Could not change the role", { description: e.message }),
+  });
+
+  const [pendingDelete, setPendingDelete] = useState<TeamMember | null>(null);
+
+  const removeUser = useMutation({
+    mutationFn: (userId: string) => api.admin.deleteUser(userId),
+    onSuccess: (_result, userId) => {
+      const removed = rows.find((u) => u.id === userId);
+      setPendingDelete(null);
+      qc.invalidateQueries({ queryKey: queryKeys.admin.users });
+      qc.invalidateQueries({ queryKey: queryKeys.admin.agents });
+      qc.invalidateQueries({ queryKey: queryKeys.admin.workload });
+      toast.success(`${removed?.name ?? "Account"} deleted`);
+    },
+    // The refusals are the informative part — "they still hold 3 open tickets"
+    // is what tells the admin what to do next, so it is shown, not swallowed.
+    onError: (e: Error) => toast.error("Could not delete the account", { description: e.message }),
   });
 
   const rows = data ?? [];
@@ -152,6 +180,23 @@ export function TeamView() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(user)}
+                    disabled={locked || removeUser.isPending}
+                    aria-label={`Delete ${user.name}`}
+                    title={
+                      isSelf
+                        ? "You cannot delete your own account"
+                        : lastAdmin
+                          ? "The only admin cannot be deleted"
+                          : `Delete ${user.name}`
+                    }
+                    className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-sla-critical-bg hover:text-sla-critical disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </button>
                 </li>
               );
             })}
@@ -176,7 +221,45 @@ export function TeamView() {
             </div>
           ))}
         </dl>
+        <p className="flex items-start gap-2">
+          <Trash2 className="mt-px size-3.5 shrink-0" aria-hidden />
+          <span>
+            Deleting an account is permanent. It is refused while the person still has tickets — reassign or close
+            those first, so no ticket is left pointing at somebody who no longer exists.
+          </span>
+        </p>
       </div>
+
+      {/* Deletion is irreversible and the seeded demo accounts are the obvious
+          thing to point it at, so it asks first and names who. */}
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.email} will no longer be able to sign in, and the account cannot be restored.
+              {pendingDelete && pendingDelete.openTickets > 0
+                ? ` They are assigned ${pendingDelete.openTickets} open ticket${pendingDelete.openTickets === 1 ? "" : "s"}, so this will be refused until those are reassigned or closed.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeUser.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                // Keep the dialog open until the request settles: a refusal has
+                // something to say, and closing first would hide it behind a toast.
+                event.preventDefault();
+                if (pendingDelete) removeUser.mutate(pendingDelete.id);
+              }}
+              disabled={removeUser.isPending}
+              className="bg-sla-critical text-white hover:bg-sla-critical/90"
+            >
+              {removeUser.isPending ? "Deleting…" : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

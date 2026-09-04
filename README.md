@@ -135,6 +135,12 @@ Every seeded account uses the password `password123` — `admin@helpdesk.test`,
 `ana@helpdesk.test` (agent), `dana@customer.test` (customer), and four more listed on the
 sign-in screen.
 
+The one-click roster and that password are printed on the sign-in screen **only in mock
+mode**. Against a real API the login page offers nothing but the form, since a working
+password on a public login page is a hole rather than a convenience. See
+[Handing it over](#handing-it-over) for what to do with the seeded accounts on a real
+deployment.
+
 ### Frontend only — no database
 
 Set `NEXT_PUBLIC_API_MODE=mock` in `web/.env.local` and run `npm run dev:web` alone.
@@ -297,6 +303,24 @@ and stays crisp at any size.
   are rejected by `validateCalendar` rather than silently mishandled.
 - Admin notification is a console log, which the brief permits. It is isolated behind one
   function so swapping in email is a single edit.
+
+## Handing it over
+
+The seeded roster exists so the system can be demonstrated with a populated queue. Before
+real users touch a deployment:
+
+1. Sign in as `admin@helpdesk.test` and open **Your account** (the name in the sidebar).
+   Change the email and password to the real administrator's.
+2. Ask the real staff to sign up. Sign-up always creates a customer — the role is hardcoded
+   server-side, so nobody can grant themselves a queue by posting `role: "admin"`.
+3. Promote them on **Team**. An agent starts receiving auto-assignment immediately.
+4. Delete the remaining seeded accounts from **Team**. Deletion is refused while somebody
+   still owns or is assigned a live ticket, so reassign or close those first — otherwise the
+   ticket list would be left pointing at a user that no longer exists.
+
+Two accounts cannot be removed or demoted, by design: your own, and the last remaining
+admin. Either would be a one-way door out of the admin area, recoverable only by editing the
+database by hand.
 
 ## Out of scope
 

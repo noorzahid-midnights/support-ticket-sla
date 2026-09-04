@@ -13,9 +13,11 @@ import {
   MOCK_POLICIES,
   MOCK_USERS,
   addEvent,
+  allUsers,
   applyPriority,
   applyStatus,
   checkTransition,
+  passwordFor,
   pickAgent,
   readStore,
   routePriority,
@@ -87,28 +89,25 @@ export const mockApi: HelpdeskApi = {
     login: (email, password) =>
       write(() => {
         const typed = email.trim().toLowerCase();
+        const data = readStore();
+
+        // Matched against the resolved account, so a changed email works and a
+        // deleted one does not — allUsers() drops both cases for us.
+        const user = allUsers().find((u) => u.email.toLowerCase() === typed);
 
         // Accounts created through sign-up carry their own password; the seeded
-        // roster all shares the demo one.
-        const signedUp = readStore().registered.find((u) => u.email.toLowerCase() === typed);
-        if (signedUp) {
-          if (signedUp.password !== password) {
-            throw new ApiError("Email or password is incorrect.", 401, "bad_credentials");
-          }
-          update((data) => {
-            data.currentUserId = signedUp.id;
-          });
-          return { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: signedUp.role };
-        }
+        // roster shares the demo one. Either can be changed on the profile page.
+        const own = user ? data.registered.find((u) => u.id === user.id) : undefined;
+        const expected = user ? passwordFor(user.id, own?.password ?? DEMO_PASSWORD) : null;
 
-        const user = MOCK_USERS.find((u) => u.email.toLowerCase() === typed);
         // One message for both branches, so the form cannot be used to work out
         // which addresses are registered.
-        if (!user || password !== DEMO_PASSWORD) {
+        if (!user || password !== expected) {
           throw new ApiError("Email or password is incorrect.", 401, "bad_credentials");
         }
-        update((data) => {
-          data.currentUserId = user.id;
+
+        update((d) => {
+          d.currentUserId = user.id;
         });
         return user;
       }),
@@ -135,6 +134,46 @@ export const mockApi: HelpdeskApi = {
           data.registered.push(user);
           data.currentUserId = user.id;
           return { id: user.id, name: user.name, email: user.email, role: user.role };
+        }),
+      ),
+
+    updateMe: (input) =>
+      write(() =>
+        update((data) => {
+          const me = currentUser();
+          const own = data.registered.find((u) => u.id === me.id);
+          const patch = { ...(data.profiles[me.id] ?? {}) };
+
+          if (input.newPassword) {
+            // Required even though the session is already authenticated: it stops
+            // an unattended signed-in browser locking the real owner out.
+            if (!input.currentPassword) {
+              throw new ApiError(
+                "Enter your current password to set a new one.",
+                400,
+                "current_password_required",
+              );
+            }
+            if (input.currentPassword !== passwordFor(me.id, own?.password ?? DEMO_PASSWORD)) {
+              throw new ApiError("Your current password is incorrect.", 401, "bad_credentials");
+            }
+            patch.password = input.newPassword;
+          }
+
+          if (input.email) {
+            const email = input.email.trim().toLowerCase();
+            if (allUsers().some((u) => u.email.toLowerCase() === email && u.id !== me.id)) {
+              throw new ApiError("That email is already in use.", 409, "duplicate");
+            }
+            patch.email = email;
+          }
+
+          if (input.name) patch.name = input.name.trim();
+
+          // Role is deliberately absent: it is only ever changed by an admin on
+          // the Team page, so nobody can promote themselves here.
+          data.profiles[me.id] = patch;
+          return userById(me.id)!;
         }),
       ),
 
@@ -370,11 +409,7 @@ export const mockApi: HelpdeskApi = {
     users: () =>
       read(() => {
         const data = readStore();
-        const everyone: UserRef[] = [
-          ...MOCK_USERS.map((u) => ({ ...u, role: data.roles[u.id] ?? u.role })),
-          ...data.registered.map((u) => ({ id: u.id, name: u.name, email: u.email, role: data.roles[u.id] ?? u.role })),
-        ];
-        return everyone.map((u) => ({
+        return allUsers().map((u) => ({
           ...u,
           openTickets: data.tickets.filter(
             (t) => t.agentId === u.id && t.status !== "resolved" && t.status !== "closed",
@@ -391,12 +426,7 @@ export const mockApi: HelpdeskApi = {
             throw new ApiError("You cannot change your own role. Ask another admin to do it.", 422, "self_role_change");
           }
 
-          const effective = (id: string, base: Role) => data.roles[id] ?? base;
-          const all = [
-            ...MOCK_USERS.map((u) => ({ id: u.id, name: u.name, role: effective(u.id, u.role) })),
-            ...data.registered.map((u) => ({ id: u.id, name: u.name, role: effective(u.id, u.role) })),
-          ];
-
+          const all = allUsers();
           const target = all.find((u) => u.id === userId);
           if (!target) throw new ApiError("No such user.", 404, "not_found");
           if (target.role === role) return { id: userId, role, changed: false };
@@ -420,6 +450,45 @@ export const mockApi: HelpdeskApi = {
           ).length;
 
           return { id: userId, name: target.name, role, previous, openTickets, changed: true };
+        }),
+      ),
+
+    deleteUser: (userId) =>
+      write(() =>
+        update((data) => {
+          const me = currentUser();
+          if (userId === me.id) {
+            throw new ApiError("You cannot delete your own account.", 422, "self_delete");
+          }
+
+          const all = allUsers();
+          const target = all.find((u) => u.id === userId);
+          if (!target) throw new ApiError("No such user.", 404, "not_found");
+
+          if (target.role === "admin" && all.filter((u) => u.role === "admin").length <= 1) {
+            throw new ApiError("This is the only admin. Promote someone else first.", 422, "last_admin");
+          }
+
+          // Deleting someone who still owns tickets would leave those tickets
+          // pointing at a user that no longer exists.
+          const raised = data.tickets.filter((t) => t.customerId === userId).length;
+          const assigned = data.tickets.filter(
+            (t) => t.agentId === userId && t.status !== "resolved" && t.status !== "closed",
+          ).length;
+
+          if (raised > 0 || assigned > 0) {
+            const parts = [
+              raised > 0 ? `raised ${raised} ticket${raised === 1 ? "" : "s"}` : null,
+              assigned > 0 ? `are assigned ${assigned} open ticket${assigned === 1 ? "" : "s"}` : null,
+            ].filter(Boolean);
+            throw new ApiError(
+              `Cannot delete ${target.name}: they ${parts.join(" and ")}. Reassign or close those first.`,
+              422,
+              "has_tickets",
+            );
+          }
+
+          data.deletedUserIds.push(userId);
         }),
       ),
 
