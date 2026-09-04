@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { z } from "zod";
-import { ROLES } from "@shared/types.js";
+import { ROLES } from "../../../shared/types.js";
 import { User } from "../models/index.js";
 import { clearAuthCookie, currentUser, requireAuth, setAuthCookie, signToken } from "../middleware/auth.js";
 import { HttpError, asyncHandler } from "../middleware/errors.js";

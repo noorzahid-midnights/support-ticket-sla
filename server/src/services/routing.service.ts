@@ -6,7 +6,7 @@
  * stops "add "outage" to the urgent list" from being a redeploy.
  */
 
-import { PRIORITIES, type Priority, type RoutingRule as RoutingRuleDto } from "@shared/types.js";
+import { PRIORITIES, type Priority, type RoutingRule as RoutingRuleDto } from "../../../shared/types.js";
 import { RoutingRule, Ticket, User } from "../models/index.js";
 
 export interface RoutingMatch {

@@ -8,9 +8,9 @@
  * non-null if and only if `status === "waiting_on_customer"`.
  */
 
-import type { BusinessCalendar } from "@shared/business-time.js";
-import { pauseClock, repriceClock, resumeClock, snapshot, startClock } from "@shared/sla.js";
-import { checkTransition, pausesClock, resumesClock } from "@shared/transitions.js";
+import type { BusinessCalendar } from "../../../shared/business-time.js";
+import { pauseClock, repriceClock, resumeClock, snapshot, startClock } from "../../../shared/sla.js";
+import { checkTransition, pausesClock, resumesClock } from "../../../shared/transitions.js";
 import {
   type Priority,
   type Role,
@@ -23,7 +23,7 @@ import {
   type TicketStatus,
   type UserRef,
   isTerminal,
-} from "@shared/types.js";
+} from "../../../shared/types.js";
 import mongoose from "mongoose";
 import { Ticket, TicketEvent, User, nextTicketReference, type TicketDoc } from "../models/index.js";
 import { getCalendar, getPolicies, getPolicy } from "./calendar.service.js";

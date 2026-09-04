@@ -11,7 +11,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import type { Role } from "@shared/types.js";
+import type { Role } from "../../../shared/types.js";
 import { env, isProd } from "../env.js";
 import { User } from "../models/index.js";
 import { HttpError } from "./errors.js";

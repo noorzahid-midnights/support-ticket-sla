@@ -9,8 +9,8 @@
  * the effect without a restart.
  */
 
-import { validateCalendar, type BusinessCalendar } from "@shared/business-time.js";
-import { DEFAULT_SLA_POLICIES, type Priority, type SlaPolicy } from "@shared/types.js";
+import { validateCalendar, type BusinessCalendar } from "../../../shared/business-time.js";
+import { DEFAULT_SLA_POLICIES, type Priority, type SlaPolicy } from "../../../shared/types.js";
 import { BusinessHours, Holiday, SlaPolicy as SlaPolicyModel } from "../models/index.js";
 import { env } from "../env.js";
 

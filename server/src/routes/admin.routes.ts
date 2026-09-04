@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { PRIORITIES } from "@shared/types.js";
+import { PRIORITIES } from "../../../shared/types.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/errors.js";
 import { BusinessHours, Holiday, RoutingRule, SlaPolicy, User } from "../models/index.js";

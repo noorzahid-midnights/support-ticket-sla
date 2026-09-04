@@ -1,8 +1,8 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { PRIORITIES, TICKET_STATUSES } from "@shared/types.js";
-import { allowedTransitions } from "@shared/transitions.js";
+import { PRIORITIES, TICKET_STATUSES } from "../../../shared/types.js";
+import { allowedTransitions } from "../../../shared/transitions.js";
 import { currentUser, requireAuth, requireRole } from "../middleware/auth.js";
 import { HttpError, asyncHandler } from "../middleware/errors.js";
 import {

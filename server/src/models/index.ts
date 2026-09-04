@@ -6,7 +6,7 @@
  */
 
 import mongoose, { Schema, type HydratedDocument, type InferSchemaType, type Model } from "mongoose";
-import { EVENT_TYPES, PRIORITIES, ROLES, TICKET_STATUSES } from "@shared/types.js";
+import { EVENT_TYPES, PRIORITIES, ROLES, TICKET_STATUSES } from "../../../shared/types.js";
 
 /* ------------------------------------------------------------------ users */
 

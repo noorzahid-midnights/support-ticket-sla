@@ -3,11 +3,9 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { connectDb } from "./db.js";
 import { env, isProd } from "./env.js";
 import { attachUser, requireAuth } from "./middleware/auth.js";
 import { HttpError, errorHandler, notFoundHandler } from "./middleware/errors.js";
-import { startSlaSweep } from "./jobs/sla-sweep.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { ticketRouter } from "./routes/ticket.routes.js";
@@ -94,27 +92,3 @@ export function createApp() {
 
   return app;
 }
-
-async function main() {
-  await connectDb();
-
-  // Fail at boot on a bad calendar rather than on the first ticket created.
-  await getCalendar();
-
-  const app = createApp();
-  app.listen(env.PORT, () => {
-    console.log(`[api] listening on port ${env.PORT}`);
-    console.log(`[api] accepting credentialed requests from ${env.WEB_ORIGIN}`);
-    console.log(`[api] cookies: sameSite=${env.COOKIE_SAMESITE} secure=${isProd || env.COOKIE_SAMESITE === "none"}`);
-    if (env.TRUST_PROXY > 0) console.log(`[api] trusting ${env.TRUST_PROXY} proxy hop(s)`);
-    startSlaSweep();
-    if (!env.SLA_SWEEP_ENABLED) {
-      console.log("[sla] in-process sweep is off — drive POST /api/jobs/sla-sweep from a scheduler");
-    }
-  });
-}
-
-main().catch((error) => {
-  console.error("[api] failed to start:", error);
-  process.exit(1);
-});

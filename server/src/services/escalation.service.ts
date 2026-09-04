@@ -6,8 +6,8 @@
  * without waiting a minute for a tick.
  */
 
-import { decideBreach, snapshot } from "@shared/sla.js";
-import { nextPriorityUp, type Priority, type TicketStatus } from "@shared/types.js";
+import { decideBreach, snapshot } from "../../../shared/sla.js";
+import { nextPriorityUp, type Priority, type TicketStatus } from "../../../shared/types.js";
 import { Ticket, type TicketDoc } from "../models/index.js";
 import { getCalendar, getPolicies } from "./calendar.service.js";
 import { changePriority, logEvent } from "./ticket.service.js";

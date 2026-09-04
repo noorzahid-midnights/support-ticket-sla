@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RoutingRule } from "@shared/types.js";
+import type { RoutingRule } from "../../../shared/types.js";
 import { selectPriority } from "./routing.service.js";
 
 const rule = (over: Partial<RoutingRule> & Pick<RoutingRule, "name" | "keywords" | "priority">): RoutingRule => ({
