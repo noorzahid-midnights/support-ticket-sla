@@ -171,11 +171,18 @@ adminRouter.get(
   asyncHandler(async (_req, res) => {
     const users = await User.find().sort({ role: 1, name: 1 }).lean();
 
-    const open = await Ticket.aggregate<{ _id: unknown; count: number }>([
-      { $match: { status: { $nin: ["resolved", "closed"] }, assignedAgent: { $ne: null } } },
-      { $group: { _id: "$assignedAgent", count: { $sum: 1 } } },
+    // Two counts, because deletion is refused on either: an agent's live queue,
+    // and every ticket a customer ever raised — a resolved ticket still points
+    // at whoever filed it.
+    const [open, raised] = await Promise.all([
+      Ticket.aggregate<{ _id: unknown; count: number }>([
+        { $match: { status: { $nin: ["resolved", "closed"] }, assignedAgent: { $ne: null } } },
+        { $group: { _id: "$assignedAgent", count: { $sum: 1 } } },
+      ]),
+      Ticket.aggregate<{ _id: unknown; count: number }>([{ $group: { _id: "$customer", count: { $sum: 1 } } }]),
     ]);
     const byId = new Map(open.map((o) => [String(o._id), o.count]));
+    const raisedById = new Map(raised.map((o) => [String(o._id), o.count]));
 
     res.json(
       users.map((u) => ({
@@ -184,6 +191,7 @@ adminRouter.get(
         email: u.email,
         role: u.role,
         openTickets: byId.get(String(u._id)) ?? 0,
+        raisedTickets: raisedById.get(String(u._id)) ?? 0,
         createdAt: (u as unknown as { createdAt?: Date }).createdAt?.toISOString() ?? null,
       })),
     );

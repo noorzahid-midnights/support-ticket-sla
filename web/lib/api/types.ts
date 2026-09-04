@@ -52,7 +52,10 @@ export interface CalendarMeta {
 
 /** A person in the Team view, with the queue they are carrying. */
 export interface TeamMember extends UserRef {
+  /** Live tickets assigned to them. A demotion does not reassign these. */
   openTickets: number;
+  /** Every ticket they ever raised, resolved ones included — deletion is refused on these too. */
+  raisedTickets: number;
   createdAt: string | null;
 }
 

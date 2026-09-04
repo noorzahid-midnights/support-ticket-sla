@@ -104,6 +104,21 @@ export function TeamView() {
   const rows = data ?? [];
   const admins = rows.filter((u) => u.role === "admin").length;
 
+  // Both counts block a delete server-side, so the dialog names whichever applies
+  // rather than letting the refusal be the first the admin hears of it.
+  const blocker =
+    pendingDelete &&
+    [
+      pendingDelete.raisedTickets > 0
+        ? `raised ${pendingDelete.raisedTickets} ticket${pendingDelete.raisedTickets === 1 ? "" : "s"}`
+        : null,
+      pendingDelete.openTickets > 0
+        ? `are assigned ${pendingDelete.openTickets} open ticket${pendingDelete.openTickets === 1 ? "" : "s"}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" and ");
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -157,6 +172,9 @@ export function TeamView() {
                     <p className="truncate text-2xs text-muted-foreground">
                       {user.email}
                       {user.openTickets > 0 && ` · ${user.openTickets} open ticket${user.openTickets === 1 ? "" : "s"}`}
+                      {user.openTickets === 0 &&
+                        user.raisedTickets > 0 &&
+                        ` · raised ${user.raisedTickets} ticket${user.raisedTickets === 1 ? "" : "s"}`}
                     </p>
                   </div>
 
@@ -238,9 +256,7 @@ export function TeamView() {
             <AlertDialogTitle>Delete {pendingDelete?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDelete?.email} will no longer be able to sign in, and the account cannot be restored.
-              {pendingDelete && pendingDelete.openTickets > 0
-                ? ` They are assigned ${pendingDelete.openTickets} open ticket${pendingDelete.openTickets === 1 ? "" : "s"}, so this will be refused until those are reassigned or closed.`
-                : ""}
+              {blocker ? ` They ${blocker}, so this will be refused until those are reassigned or closed.` : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

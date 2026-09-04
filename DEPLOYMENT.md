@@ -123,6 +123,18 @@ password is in this repository.
 
 Skipping step 1 leaves an admin account whose password is public.
 
+**On the current deployment this has already been done for the admin account.**
+Its password was rotated away from the seeded `password123`, so the value
+printed in this repository no longer opens it. The temporary password is held
+outside version control and handed over separately — the client changes it on
+first sign-in from **Your account**. Every other seeded account still uses
+`password123`.
+
+The admin email is still `admin@helpdesk.test`. That is deliberate rather than
+unfinished: `.test` is a reserved domain that can never resolve, so a
+placeholder there cannot be mistaken for a real mailbox or quietly receive mail.
+Change it to the client's address on the same screen.
+
 ---
 
 ## Running it locally

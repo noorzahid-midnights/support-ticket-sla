@@ -414,6 +414,7 @@ export const mockApi: HelpdeskApi = {
           openTickets: data.tickets.filter(
             (t) => t.agentId === u.id && t.status !== "resolved" && t.status !== "closed",
           ).length,
+          raisedTickets: data.tickets.filter((t) => t.customerId === u.id).length,
           createdAt: null,
         }));
       }),
