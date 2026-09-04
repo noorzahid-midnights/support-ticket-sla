@@ -1,6 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "framework": null,
+
+  "buildCommand": "echo \"no build step: api/index.ts is compiled by the function builder\"",
+  "outputDirectory": "public",
+
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,

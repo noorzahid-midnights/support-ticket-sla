@@ -3,7 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "description": "Helpdesk with a business-hours-aware SLA engine.",
-  "workspaces": ["shared", "server", "web"],
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
   "scripts": {
     "test": "npm run test --workspace shared && npm run test --workspace server",
     "typecheck": "npm run typecheck --workspace shared && npm run typecheck --workspace server && npm run typecheck --workspace web",
@@ -11,5 +15,8 @@
     "dev:web": "npm run dev --workspace web",
     "seed": "npm run seed --workspace server"
   },
-  "engines": { "node": ">=18.18" }
+  "engines": {
+    "node": ">=18.18"
+  },
+  "type": "module"
 }

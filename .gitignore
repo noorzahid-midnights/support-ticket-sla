@@ -8,3 +8,6 @@ dist/
 
 # Local service credentials
 .vercel/
+
+# Generated env bundles for the Vercel import screen (contain secrets)
+vercel-*.env
