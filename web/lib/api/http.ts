@@ -1,13 +1,15 @@
 import { ApiError } from "@shared/types.js";
 import type {
   CalendarMeta,
+  RoleChangeResult,
+  TeamMember,
   CreateTicketInput,
   HelpdeskApi,
   SweepResult,
   TicketDetailResponse,
   TicketQuery,
 } from "./types";
-import type { AgentWorkload, Paginated, Priority, Ticket, TicketStatus, UserRef } from "@shared/index.js";
+import type { AgentWorkload, Paginated, Priority, Role, Ticket, TicketStatus, UserRef } from "@shared/index.js";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -81,6 +83,9 @@ export const httpApi: HelpdeskApi = {
     breaches: () => request<Paginated<Ticket>>("/api/admin/breaches"),
     workload: () => request<AgentWorkload[]>("/api/admin/workload"),
     agents: () => request<UserRef[]>("/api/admin/agents"),
+    users: () => request<TeamMember[]>("/api/admin/users"),
+    setRole: (userId, role) =>
+      request<RoleChangeResult>(`/api/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
     runSweep: () => request<SweepResult>("/api/admin/sla/sweep", { method: "POST" }),
   },
 };

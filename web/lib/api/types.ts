@@ -13,6 +13,7 @@ import type {
   BusinessCalendar,
   Paginated,
   Priority,
+  Role,
   SlaPolicy,
   Ticket,
   TicketDetail,
@@ -49,6 +50,22 @@ export interface CalendarMeta {
   policies: SlaPolicy[];
 }
 
+/** A person in the Team view, with the queue they are carrying. */
+export interface TeamMember extends UserRef {
+  openTickets: number;
+  createdAt: string | null;
+}
+
+export interface RoleChangeResult {
+  id: string;
+  name?: string;
+  role: Role;
+  previous?: Role;
+  /** Open tickets the person still holds — a demotion does not reassign them. */
+  openTickets?: number;
+  changed: boolean;
+}
+
 export interface HelpdeskApi {
   auth: {
     me(): Promise<UserRef>;
@@ -73,6 +90,9 @@ export interface HelpdeskApi {
     breaches(): Promise<Paginated<Ticket>>;
     workload(): Promise<AgentWorkload[]>;
     agents(): Promise<UserRef[]>;
+    /** Everyone, not just staff — the Team page needs customers too, to promote them. */
+    users(): Promise<TeamMember[]>;
+    setRole(userId: string, role: Role): Promise<RoleChangeResult>;
     runSweep(): Promise<SweepResult>;
   };
 }

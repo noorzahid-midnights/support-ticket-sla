@@ -30,7 +30,7 @@ import {
 } from "@shared/types.js";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 
-const STORAGE_KEY = "helpdesk.mock.v3";
+const STORAGE_KEY = "helpdesk.mock.v4";
 
 export const MOCK_CALENDAR: BusinessCalendar = {
   timezone: "Asia/Karachi",
@@ -110,6 +110,8 @@ export interface MockData {
   currentUserId: string | null;
   /** Accounts created through the sign-up form, kept apart from the seeded roster. */
   registered: (UserRef & { password: string })[];
+  /** Role overrides by user id. The seeded roster is a constant, so promotions live here. */
+  roles: Record<string, Role>;
   tickets: MockTicket[];
   seq: number;
 }
@@ -141,10 +143,13 @@ export function writeClock(t: MockTicket, clock: SlaClock): void {
 }
 
 export function userById(id: string | null): UserRef | null {
+  const override = id ? memory?.roles?.[id] : undefined;
   const seeded = MOCK_USERS.find((u) => u.id === id);
-  if (seeded) return seeded;
+  if (seeded) return override ? { ...seeded, role: override } : seeded;
   const signedUp = memory?.registered?.find((u) => u.id === id);
-  return signedUp ? { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: signedUp.role } : null;
+  return signedUp
+    ? { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: override ?? signedUp.role }
+    : null;
 }
 
 export function serialize(t: MockTicket, now = new Date()): Ticket {
@@ -461,7 +466,7 @@ export function buildSeed(): MockData {
 
   // Starts signed out, so the login screen is a real part of the demo rather
   // than a page nobody ever sees.
-  return { currentUserId: null, registered: [], tickets, seq: 1000 + specs.length };
+  return { currentUserId: null, registered: [], roles: {}, tickets, seq: 1000 + specs.length };
 }
 
 /* ---------------------------------------------------------- persistence */

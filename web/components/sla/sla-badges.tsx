@@ -204,9 +204,11 @@ export function SlaRing({
             paused — waiting on customer
           </p>
         ) : deadline.metAt ? null : !live.ticking && live.resumesAt && calendar ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 text-2xs text-muted-foreground">
-            <Clock className="size-3" aria-hidden />
-            outside hours — resumes {formatInCalendarTz(live.resumesAt.toISOString(), calendar.timezone)}
+          <p className="mt-1.5 flex items-start gap-1 text-2xs text-muted-foreground">
+            <Clock className="mt-[3px] size-3 shrink-0" aria-hidden />
+            {/* One span, so the sentence and the interpolated date stay a single
+                flex item and wrap as prose rather than gaining a stray gap. */}
+            <span>outside hours — resumes {formatInCalendarTz(live.resumesAt.toISOString(), calendar.timezone)}</span>
           </p>
         ) : remaining !== null && remaining < 0 ? (
           // Past the deadline the clock is counting *up*, so saying "counting

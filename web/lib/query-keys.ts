@@ -17,5 +17,6 @@ export const queryKeys = {
     breaches: ["admin", "breaches"] as const,
     workload: ["admin", "workload"] as const,
     agents: ["admin", "agents"] as const,
+    users: ["admin", "users"] as const,
   },
 };

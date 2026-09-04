@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ApiError } from "@shared/types.js";
 import { useMe } from "@/hooks/use-tickets";
 
@@ -20,7 +22,7 @@ import { useMe } from "@/hooks/use-tickets";
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: me, isPending, error } = useMe();
+  const { data: me, isPending, error, refetch } = useMe();
 
   const unauthenticated = error instanceof ApiError && error.status === 401;
 
@@ -30,6 +32,30 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
     router.replace(`/login${next}`);
   }, [unauthenticated, pathname, router]);
+
+  // A failure that is not a 401 means the server is unwell — most often the
+  // database being unreachable. Signing the user out would be a lie, and the
+  // quiet hold below would leave them on a blank page indefinitely, so say so.
+  if (error && !unauthenticated) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-plane px-6">
+        <div className="max-w-sm text-center">
+          <span className="mx-auto grid size-10 place-items-center rounded-full bg-sla-critical-bg text-sla-critical">
+            <AlertTriangle className="size-5" aria-hidden />
+          </span>
+          <h1 className="mt-4 text-lg font-semibold">Cannot reach the server</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {error instanceof ApiError && error.status >= 500
+              ? "The service is up but something behind it is failing — usually the database."
+              : error.message}
+          </p>
+          <Button className="mt-5" onClick={() => refetch()}>
+            Try again
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   if (isPending || unauthenticated || !me) {
     // A quiet hold rather than a spinner: the redirect resolves in a frame or

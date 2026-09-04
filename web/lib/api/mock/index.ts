@@ -5,7 +5,7 @@
  * so loading skeletons and error states are exercisable without a backend.
  */
 
-import { ApiError, type AgentWorkload, type Paginated, type Priority, type Ticket, type TicketStatus, type UserRef } from "@shared/types.js";
+import { ApiError, type AgentWorkload, type Paginated, type Priority, type Role, type Ticket, type TicketStatus, type UserRef } from "@shared/types.js";
 import { allowedTransitions } from "@shared/transitions.js";
 import type { CalendarMeta, CreateTicketInput, HelpdeskApi, SweepResult, TicketDetailResponse, TicketQuery } from "../types";
 import {
@@ -366,6 +366,62 @@ export const mockApi: HelpdeskApi = {
       }),
 
     agents: () => read<UserRef[]>(() => MOCK_USERS.filter((u) => u.role === "agent" || u.role === "admin")),
+
+    users: () =>
+      read(() => {
+        const data = readStore();
+        const everyone: UserRef[] = [
+          ...MOCK_USERS.map((u) => ({ ...u, role: data.roles[u.id] ?? u.role })),
+          ...data.registered.map((u) => ({ id: u.id, name: u.name, email: u.email, role: data.roles[u.id] ?? u.role })),
+        ];
+        return everyone.map((u) => ({
+          ...u,
+          openTickets: data.tickets.filter(
+            (t) => t.agentId === u.id && t.status !== "resolved" && t.status !== "closed",
+          ).length,
+          createdAt: null,
+        }));
+      }),
+
+    setRole: (userId, role) =>
+      write(() =>
+        update((data) => {
+          const me = currentUser();
+          if (userId === me.id) {
+            throw new ApiError("You cannot change your own role. Ask another admin to do it.", 422, "self_role_change");
+          }
+
+          const effective = (id: string, base: Role) => data.roles[id] ?? base;
+          const all = [
+            ...MOCK_USERS.map((u) => ({ id: u.id, name: u.name, role: effective(u.id, u.role) })),
+            ...data.registered.map((u) => ({ id: u.id, name: u.name, role: effective(u.id, u.role) })),
+          ];
+
+          const target = all.find((u) => u.id === userId);
+          if (!target) throw new ApiError("No such user.", 404, "not_found");
+          if (target.role === role) return { id: userId, role, changed: false };
+
+          // The last admin cannot be demoted, or nobody can reach this page again.
+          if (target.role === "admin" && role !== "admin") {
+            const admins = all.filter((u) => u.role === "admin").length;
+            if (admins <= 1) {
+              throw new ApiError(
+                "This is the only admin. Promote someone else before demoting this account.",
+                422,
+                "last_admin",
+              );
+            }
+          }
+
+          const previous = target.role;
+          data.roles[userId] = role;
+          const openTickets = data.tickets.filter(
+            (t) => t.agentId === userId && t.status !== "resolved" && t.status !== "closed",
+          ).length;
+
+          return { id: userId, name: target.name, role, previous, openTickets, changed: true };
+        }),
+      ),
 
     runSweep: () => write<SweepResult>(() => update((data) => sweep(data))),
   },

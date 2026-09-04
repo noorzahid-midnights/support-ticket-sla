@@ -76,13 +76,19 @@ export function NewTicketDialog({ open, onOpenChange }: { open: boolean; onOpenC
 
             {/* Tells the user why the priority they get may not be the one they
                 expected, before they get it. */}
-            <p className="flex items-start gap-2 rounded-md bg-secondary px-3 py-2 text-2xs text-muted-foreground">
-              <Sparkles className="mt-0.5 size-3 shrink-0" aria-hidden />
-              Words like <strong className="font-medium">down</strong>,{" "}
-              <strong className="font-medium">outage</strong> or{" "}
-              <strong className="font-medium">can&apos;t login</strong> raise the priority automatically. The SLA clock
-              counts business hours only and pauses whenever we are waiting on you.
-            </p>
+            {/* The flex container holds exactly two children — icon and text.
+                Putting the sentence directly in a flex parent makes every
+                <strong> and text fragment its own flex item, which breaks the
+                line into columns instead of letting it wrap as prose. */}
+            <div className="flex items-start gap-2 rounded-md bg-secondary px-3 py-2">
+              <Sparkles className="mt-0.5 size-3 shrink-0 text-muted-foreground" aria-hidden />
+              <p className="text-2xs leading-relaxed text-muted-foreground">
+                Words like <strong className="font-medium text-foreground">down</strong>,{" "}
+                <strong className="font-medium text-foreground">outage</strong> or{" "}
+                <strong className="font-medium text-foreground">can&apos;t login</strong> raise the priority
+                automatically. The SLA clock counts business hours only, and pauses whenever we are waiting on you.
+              </p>
+            </div>
           </div>
 
           <DialogFooter>

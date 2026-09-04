@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, Inbox, LayoutDashboard, Users, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Inbox, LayoutDashboard, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { useMe } from "@/hooks/use-tickets";
 import { BusinessHoursIndicator } from "@/components/sla/business-hours-indicator";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ const NAV: NavItem[] = [
   { href: "/tickets", label: "All tickets", icon: Inbox, roles: ["admin", "agent"] },
   { href: "/admin/breaches", label: "SLA breaches", icon: AlertTriangle, roles: ["admin"] },
   { href: "/admin/agents", label: "Agent workload", icon: Users, roles: ["admin"] },
+  { href: "/admin/team", label: "Team", icon: ShieldCheck, roles: ["admin"] },
 ];
 
 function useIsActive(href: string) {
