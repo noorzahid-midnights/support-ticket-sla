@@ -27,6 +27,25 @@ const nextConfig = {
     };
 
     /**
+     * Resolve bare imports against this app's node_modules no matter where the
+     * importing file lives.
+     *
+     * Node resolution walks up from the *importing* file, so `../server/src`
+     * looks in `../server/node_modules` and the repo root — never in
+     * `web/node_modules`. Locally that goes unnoticed because npm workspaces
+     * hoist everything to the root, but a host that installs `web/` on its own
+     * fails on every dependency the API uses.
+     *
+     * Appended, never prepended: putting it first outranks the aliases Next
+     * uses to pin its own copy of React, which yields two Reacts and a
+     * prerender crash on `useState` of null.
+     */
+    config.resolve.modules = [
+      ...(config.resolve.modules ?? ["node_modules"]),
+      path.resolve(dirname, "node_modules"),
+    ];
+
+    /**
      * Next's SWC loader only covers files inside this project's own directory,
      * so TypeScript imported from ../shared or ../server reaches webpack as
      * raw source and fails to parse. Registering the loader for those
