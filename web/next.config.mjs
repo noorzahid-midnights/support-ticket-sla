@@ -3,16 +3,20 @@ import { fileURLToPath } from "node:url";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** Sibling workspaces whose TypeScript this app compiles directly. */
+const SHARED_DIR = path.resolve(dirname, "../shared");
+const SERVER_DIR = path.resolve(dirname, "../server/src");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  webpack: (config) => {
+  webpack: (config, { defaultLoaders, isServer }) => {
     // The SLA engine lives in ../shared and is imported as TypeScript source so
     // the client's countdown and the server's deadlines come from one copy of
     // the code rather than two that can drift. TypeScript resolves this through
     // tsconfig `paths`, but webpack does not read those — hence the alias.
-    config.resolve.alias["@shared"] = path.resolve(dirname, "../shared");
+    config.resolve.alias["@shared"] = SHARED_DIR;
 
     // Those modules import each other with ESM-style ".js" specifiers, which is
     // what TypeScript wants for NodeNext output. Webpack has to be told that a
@@ -22,27 +26,29 @@ const nextConfig = {
       ".js": [".ts", ".tsx", ".js"],
     };
 
-    return config;
-  },
+    /**
+     * Next's SWC loader only covers files inside this project's own directory,
+     * so TypeScript imported from ../shared or ../server reaches webpack as
+     * raw source and fails to parse. Registering the loader for those
+     * directories is what lets the API be compiled as part of this build.
+     */
+    config.module.rules.push({
+      test: /\.tsx?$/,
+      include: [SHARED_DIR, SERVER_DIR],
+      use: [defaultLoaders.babel],
+    });
 
-  /**
-   * Proxy the API through this app in deployment.
-   *
-   * The browser then only ever talks to one origin, so the auth cookie stays
-   * first-party and `SameSite=Lax` keeps working. Calling the API on its own
-   * domain instead makes every request cross-site, at which point the browser
-   * silently drops the cookie and the app looks permanently signed out — with
-   * no error anywhere, because nothing actually failed.
-   *
-   * Set API_ORIGIN to the backend's URL (server-side only, deliberately not
-   * NEXT_PUBLIC_*) and leave NEXT_PUBLIC_API_BASE_URL empty so the client uses
-   * same-origin paths. With API_ORIGIN unset this is a no-op, which is what
-   * local development wants.
-   */
-  async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN;
-    if (!apiOrigin) return [];
-    return [{ source: "/api/:path*", destination: `${apiOrigin.replace(/\/$/, "")}/api/:path*` }];
+    // The API pulls in Node-only packages. They must never be traced into a
+    // client bundle, and marking them external also keeps the server bundle
+    // from rewriting their dynamic requires.
+    if (isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean)),
+        { mongoose: "commonjs mongoose", bcryptjs: "commonjs bcryptjs" },
+      ];
+    }
+
+    return config;
   },
 };
 

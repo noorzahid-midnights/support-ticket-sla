@@ -27,7 +27,8 @@ const NAV: NavItem[] = [
 
 function useIsActive(href: string) {
   const pathname = usePathname();
-  return pathname === href || pathname.startsWith(`${href}/`);
+  // Nullable once a pages/ router is present in the app.
+  return pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 }
 
 function NavLink({ item }: { item: NavItem }) {

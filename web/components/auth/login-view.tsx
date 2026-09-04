@@ -36,7 +36,8 @@ export function LoginView() {
   const [password, setPassword] = useState("");
 
   // Where the guard bounced them from, so a deep link survives signing in.
-  const next = params.get("next");
+  // `useSearchParams` is nullable once a pages/ router is present in the app.
+  const next = params?.get("next") ?? null;
 
   const signIn = useMutation({
     mutationFn: (input: { email: string; password: string }) => api.auth.login(input.email, input.password),
