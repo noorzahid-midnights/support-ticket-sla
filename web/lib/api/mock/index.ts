@@ -86,7 +86,22 @@ export const mockApi: HelpdeskApi = {
 
     login: (email, password) =>
       write(() => {
-        const user = MOCK_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+        const typed = email.trim().toLowerCase();
+
+        // Accounts created through sign-up carry their own password; the seeded
+        // roster all shares the demo one.
+        const signedUp = readStore().registered.find((u) => u.email.toLowerCase() === typed);
+        if (signedUp) {
+          if (signedUp.password !== password) {
+            throw new ApiError("Email or password is incorrect.", 401, "bad_credentials");
+          }
+          update((data) => {
+            data.currentUserId = signedUp.id;
+          });
+          return { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: signedUp.role };
+        }
+
+        const user = MOCK_USERS.find((u) => u.email.toLowerCase() === typed);
         // One message for both branches, so the form cannot be used to work out
         // which addresses are registered.
         if (!user || password !== DEMO_PASSWORD) {
@@ -97,6 +112,31 @@ export const mockApi: HelpdeskApi = {
         });
         return user;
       }),
+
+    register: (input) =>
+      write(() =>
+        update((data) => {
+          const email = input.email.trim().toLowerCase();
+          const taken =
+            MOCK_USERS.some((u) => u.email.toLowerCase() === email) ||
+            data.registered.some((u) => u.email.toLowerCase() === email);
+          if (taken) throw new ApiError("That email is already registered.", 409, "duplicate");
+
+          // Always a customer, mirroring the server. Staff accounts are
+          // provisioned, never self-served — otherwise anyone could grant
+          // themselves an agent queue simply by signing up.
+          const user = {
+            id: `u-new-${data.registered.length + 1}`,
+            name: input.name.trim(),
+            email,
+            role: "customer" as const,
+            password: input.password,
+          };
+          data.registered.push(user);
+          data.currentUserId = user.id;
+          return { id: user.id, name: user.name, email: user.email, role: user.role };
+        }),
+      ),
 
     logout: () =>
       write(() => {

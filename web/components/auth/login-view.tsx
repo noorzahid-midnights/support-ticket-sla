@@ -32,6 +32,8 @@ export function LoginView() {
   const params = useSearchParams();
   const qc = useQueryClient();
 
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -39,25 +41,49 @@ export function LoginView() {
   // `useSearchParams` is nullable once a pages/ router is present in the app.
   const next = params?.get("next") ?? null;
 
+  // Both endpoints set the auth cookie on success, so registering signs you in.
+  const goTo = async () => {
+    // Drop every cached query: the previous occupant's data must not be
+    // visible for even a frame after a different user signs in.
+    await qc.resetQueries();
+    router.replace(next && next.startsWith("/") ? next : "/dashboard");
+  };
+
   const signIn = useMutation({
     mutationFn: (input: { email: string; password: string }) => api.auth.login(input.email, input.password),
-    onSuccess: async () => {
-      // Drop every cached query: the previous occupant's data must not be
-      // visible for even a frame after a different user signs in.
-      await qc.resetQueries();
-      router.replace(next && next.startsWith("/") ? next : "/dashboard");
-    },
+    onSuccess: goTo,
   });
 
-  const error = signIn.error instanceof ApiError ? signIn.error.message : signIn.error?.message;
+  const signUp = useMutation({
+    mutationFn: (input: { name: string; email: string; password: string }) => api.auth.register(input),
+    onSuccess: goTo,
+  });
+
+  const active = mode === "signin" ? signIn : signUp;
+  const error = active.error instanceof ApiError ? active.error.message : active.error?.message;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!email.trim() || !password) return;
-    signIn.mutate({ email: email.trim(), password });
+
+    if (mode === "signin") {
+      signIn.mutate({ email: email.trim(), password });
+    } else {
+      if (name.trim().length < 2 || password.length < 8) return;
+      signUp.mutate({ name: name.trim(), email: email.trim(), password });
+    }
+  }
+
+  function switchMode(to: "signin" | "signup") {
+    setMode(to);
+    // Clear the previous mode's error, so a failed sign-in does not sit under
+    // the sign-up form complaining about credentials.
+    signIn.reset();
+    signUp.reset();
   }
 
   function signInAs(accountEmail: string) {
+    setMode("signin");
     setEmail(accountEmail);
     setPassword(DEMO_PASSWORD);
     signIn.mutate({ email: accountEmail, password: DEMO_PASSWORD });
@@ -125,7 +151,42 @@ export function LoginView() {
               : "Use your helpdesk account."}
           </p>
 
-          <form onSubmit={submit} className="mt-7 space-y-4">
+          {/* One form, two modes. A separate route would duplicate the layout
+              and lose whatever the person had already typed. */}
+          <div className="mt-6 flex rounded-lg border border-border bg-secondary/40 p-0.5" role="tablist">
+            {(["signin", "signup"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => switchMode(m)}
+                className={cn(
+                  "flex-1 rounded-md py-1.5 text-xs font-medium transition-colors",
+                  mode === m ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {m === "signin" ? "Sign in" : "Create account"}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={submit} className="mt-5 space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Your name</Label>
+                <Input
+                  id="name"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Dana Whitfield"
+                  aria-invalid={Boolean(error)}
+                  autoFocus
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -136,7 +197,7 @@ export function LoginView() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 aria-invalid={Boolean(error)}
-                autoFocus
+                autoFocus={mode === "signin"}
               />
             </div>
 
@@ -145,12 +206,15 @@ export function LoginView() {
               <Input
                 id="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 aria-invalid={Boolean(error)}
               />
+              {mode === "signup" && (
+                <p className="text-2xs text-muted-foreground">At least 8 characters.</p>
+              )}
             </div>
 
             {error && (
@@ -159,10 +223,33 @@ export function LoginView() {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={signIn.isPending || !email.trim() || !password}>
-              {signIn.isPending ? "Signing in…" : "Sign in"}
-              {!signIn.isPending && <ArrowRight className="size-4" aria-hidden />}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={
+                active.isPending ||
+                !email.trim() ||
+                !password ||
+                (mode === "signup" && (name.trim().length < 2 || password.length < 8))
+              }
+            >
+              {active.isPending
+                ? mode === "signin"
+                  ? "Signing in…"
+                  : "Creating account…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : "Create account"}
+              {!active.isPending && <ArrowRight className="size-4" aria-hidden />}
             </Button>
+
+            {mode === "signup" && (
+              <p className="text-2xs leading-relaxed text-muted-foreground">
+                New accounts are customers, so you can raise tickets and track your own. Agent and admin access is
+                granted by an administrator.
+              </p>
+            )}
           </form>
 
           <div className="mt-8">

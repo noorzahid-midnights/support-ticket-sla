@@ -30,7 +30,7 @@ import {
 } from "@shared/types.js";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 
-const STORAGE_KEY = "helpdesk.mock.v2";
+const STORAGE_KEY = "helpdesk.mock.v3";
 
 export const MOCK_CALENDAR: BusinessCalendar = {
   timezone: "Asia/Karachi",
@@ -108,6 +108,8 @@ export interface MockTicket {
 export interface MockData {
   /** null means signed out — the mock has a real unauthenticated state. */
   currentUserId: string | null;
+  /** Accounts created through the sign-up form, kept apart from the seeded roster. */
+  registered: (UserRef & { password: string })[];
   tickets: MockTicket[];
   seq: number;
 }
@@ -139,7 +141,10 @@ export function writeClock(t: MockTicket, clock: SlaClock): void {
 }
 
 export function userById(id: string | null): UserRef | null {
-  return MOCK_USERS.find((u) => u.id === id) ?? null;
+  const seeded = MOCK_USERS.find((u) => u.id === id);
+  if (seeded) return seeded;
+  const signedUp = memory?.registered?.find((u) => u.id === id);
+  return signedUp ? { id: signedUp.id, name: signedUp.name, email: signedUp.email, role: signedUp.role } : null;
 }
 
 export function serialize(t: MockTicket, now = new Date()): Ticket {
@@ -456,7 +461,7 @@ export function buildSeed(): MockData {
 
   // Starts signed out, so the login screen is a real part of the demo rather
   // than a page nobody ever sees.
-  return { currentUserId: null, tickets, seq: 1000 + specs.length };
+  return { currentUserId: null, registered: [], tickets, seq: 1000 + specs.length };
 }
 
 /* ---------------------------------------------------------- persistence */

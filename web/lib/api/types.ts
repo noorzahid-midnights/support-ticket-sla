@@ -53,6 +53,8 @@ export interface HelpdeskApi {
   auth: {
     me(): Promise<UserRef>;
     login(email: string, password: string): Promise<UserRef>;
+    /** Self-registration. Always creates a customer — staff are provisioned, never self-served. */
+    register(input: { name: string; email: string; password: string }): Promise<UserRef>;
     logout(): Promise<void>;
   };
   meta: {

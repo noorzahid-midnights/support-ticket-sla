@@ -56,6 +56,8 @@ export const httpApi: HelpdeskApi = {
     me: () => request<UserRef>("/api/auth/me"),
     login: (email, password) =>
       request<UserRef>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+    register: (input) =>
+      request<UserRef>("/api/auth/register", { method: "POST", body: JSON.stringify(input) }),
     logout: () => request<void>("/api/auth/logout", { method: "POST" }),
   },
   meta: {
