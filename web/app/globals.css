@@ -1,0 +1,297 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Palette.
+ *
+ * Brand is a deep forest teal on soft sage surfaces — the support-desk look the
+ * references were reaching for: warm, calm, generous with space, confident type.
+ *
+ * Three jobs, three encodings, kept rigorously apart:
+ *
+ *   SLA health  → the reserved status palette (good / warning / critical /
+ *                 paused). Never reused for anything else, and never carries
+ *                 meaning without an icon and a label beside it.
+ *   Priority    → a single-hue ordinal BLUE ramp. Priority is a magnitude, not
+ *                 a state, and blue keeps it clear of both the green brand and
+ *                 the green "on track" signal.
+ *   Status      → neutral chips with a small identity dot. Recessive, because
+ *                 status is the least urgent of the three.
+ *
+ * The brand green (187°, very dark) and the status "good" green (120°, vivid)
+ * are far enough apart in hue and lightness that a button never reads as a
+ * health signal — and the status colours always ship with an icon anyway.
+ */
+
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Surfaces — sage-tinted plane, white cards. */
+    --plane: 77 30% 95%;
+    --background: 77 30% 95%;
+    --foreground: 154 12% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 154 12% 12%;
+
+    --panel: 84 38% 92%;
+    --panel-border: 75 14% 85%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 154 12% 12%;
+
+    /* Brand — deep forest teal. 13.1:1 against white. */
+    --primary: 187 91% 13%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 184 54% 20%;
+    --primary-subtle: 86 43% 86%;
+
+    --secondary: 75 14% 92%;
+    --secondary-foreground: 150 6% 31%;
+
+    --muted: 75 14% 92%;
+    --muted-foreground: 150 6% 38%;
+
+    --accent: 84 38% 90%;
+    --accent-foreground: 150 6% 31%;
+
+    --destructive: 0 61% 47%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-subtle: 0 70% 96%;
+
+    --success: 120 100% 19%;
+    --success-foreground: 0 0% 100%;
+    --success-subtle: 120 45% 94%;
+
+    --border: 75 14% 87%;
+    --input: 75 14% 82%;
+    --ring: 187 91% 13%;
+
+    /* SLA health — reserved status palette. */
+    --sla-ok: 120 86% 24%;
+    --sla-ok-bg: 120 45% 94%;
+    --sla-warn: 35 92% 33%;
+    --sla-warn-bg: 41 90% 92%;
+    --sla-critical: 0 61% 45%;
+    --sla-critical-bg: 0 70% 96%;
+    --sla-paused: 249 48% 44%;
+    --sla-paused-bg: 249 60% 95%;
+
+    /* Priority — an ordinal blue ramp, low → urgent. */
+    --prio-1: 213 77% 73%;
+    --prio-2: 212 75% 62%;
+    --prio-3: 213 68% 50%;
+    --prio-4: 214 72% 34%;
+
+    --shadow-color: 160 20% 14%;
+    --radius: 0.75rem;
+  }
+
+  /* The OS setting. Guarded so an explicit light choice still wins. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+
+      --plane: 171 24% 6%;
+      --background: 171 24% 6%;
+      --foreground: 80 12% 96%;
+
+      --card: 165 17% 9%;
+      --card-foreground: 80 12% 96%;
+
+      --panel: 163 18% 8%;
+      --panel-border: 162 13% 16%;
+
+      --popover: 165 17% 11%;
+      --popover-foreground: 80 12% 96%;
+
+      --primary: 162 47% 66%;
+      --primary-foreground: 171 40% 7%;
+      --primary-hover: 162 47% 74%;
+      --primary-subtle: 165 25% 16%;
+
+      --secondary: 162 13% 15%;
+      --secondary-foreground: 80 8% 78%;
+
+      --muted: 162 13% 15%;
+      --muted-foreground: 150 6% 62%;
+
+      --accent: 162 13% 19%;
+      --accent-foreground: 80 8% 78%;
+
+      --destructive: 0 61% 60%;
+      --destructive-foreground: 171 40% 7%;
+      --destructive-subtle: 0 40% 15%;
+
+      --success: 120 86% 34%;
+      --success-foreground: 171 40% 7%;
+      --success-subtle: 120 40% 13%;
+
+      --border: 162 13% 16%;
+      --input: 162 13% 21%;
+      --ring: 162 47% 66%;
+
+      --sla-ok: 120 60% 48%;
+      --sla-ok-bg: 120 40% 12%;
+      --sla-warn: 41 96% 54%;
+      --sla-warn-bg: 41 60% 13%;
+      --sla-critical: 0 70% 62%;
+      --sla-critical-bg: 0 45% 15%;
+      --sla-paused: 247 69% 72%;
+      --sla-paused-bg: 249 40% 17%;
+
+      --prio-1: 213 78% 84%;
+      --prio-2: 213 77% 73%;
+      --prio-3: 213 77% 56%;
+      --prio-4: 213 72% 39%;
+
+      --shadow-color: 0 0% 0%;
+    }
+  }
+
+  /* The explicit toggle. Declared separately so it wins in both directions. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --plane: 171 24% 6%;
+    --background: 171 24% 6%;
+    --foreground: 80 12% 96%;
+
+    --card: 165 17% 9%;
+    --card-foreground: 80 12% 96%;
+
+    --panel: 163 18% 8%;
+    --panel-border: 162 13% 16%;
+
+    --popover: 165 17% 11%;
+    --popover-foreground: 80 12% 96%;
+
+    --primary: 162 47% 66%;
+    --primary-foreground: 171 40% 7%;
+    --primary-hover: 162 47% 74%;
+    --primary-subtle: 165 25% 16%;
+
+    --secondary: 162 13% 15%;
+    --secondary-foreground: 80 8% 78%;
+
+    --muted: 162 13% 15%;
+    --muted-foreground: 150 6% 62%;
+
+    --accent: 162 13% 19%;
+    --accent-foreground: 80 8% 78%;
+
+    --destructive: 0 61% 60%;
+    --destructive-foreground: 171 40% 7%;
+    --destructive-subtle: 0 40% 15%;
+
+    --success: 120 86% 34%;
+    --success-foreground: 171 40% 7%;
+    --success-subtle: 120 40% 13%;
+
+    --border: 162 13% 16%;
+    --input: 162 13% 21%;
+    --ring: 162 47% 66%;
+
+    --sla-ok: 120 60% 48%;
+    --sla-ok-bg: 120 40% 12%;
+    --sla-warn: 41 96% 54%;
+    --sla-warn-bg: 41 60% 13%;
+    --sla-critical: 0 70% 62%;
+    --sla-critical-bg: 0 45% 15%;
+    --sla-paused: 247 69% 72%;
+    --sla-paused-bg: 249 40% 17%;
+
+    --prio-1: 213 78% 84%;
+    --prio-2: 213 77% 73%;
+    --prio-3: 213 77% 56%;
+    --prio-4: 213 72% 39%;
+
+    --shadow-color: 0 0% 0%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground text-base antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Headline type: tight, heavy, confident — the one thing both references share. */
+  h1 {
+    letter-spacing: -0.028em;
+  }
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+
+  /* Reserved for columns that must align vertically. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /** The sage hero band, echoing the reference layouts' tinted top section. */
+  .hero-band {
+    background:
+      radial-gradient(120% 140% at 100% 0%, hsl(var(--primary-subtle) / 0.85) 0%, transparent 60%),
+      linear-gradient(180deg, hsl(var(--panel)) 0%, hsl(var(--panel) / 0.35) 100%);
+  }
+
+  /* The "we are open" dot. Slow, so it reads as a heartbeat rather than an alarm. */
+  .pulse-dot {
+    animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

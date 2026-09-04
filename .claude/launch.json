@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "helpdesk-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "web"],
+      "port": 3000
+    },
+    {
+      "name": "helpdesk-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "server"],
+      "port": 4000
+    }
+  ]
+}
